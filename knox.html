@@ -1,0 +1,2483 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>knoX — AnimeSAO Pro · Informe Técnico</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #060810;
+  --bg2: #0c0f1e;
+  --bg3: #111527;
+  --surface: #161b30;
+  --surface2: #1e2540;
+  --accent: #00e5ff;
+  --accent2: #7c3aed;
+  --accent3: #f59e0b;
+  --accent4: #10b981;
+  --danger: #ff4757;
+  --warn: #ffa502;
+  --ok: #2ed573;
+  --text: #e8ecf8;
+  --text2: #8896b8;
+  --text3: #4a5578;
+  --border: rgba(0,229,255,0.08);
+  --glow: rgba(0,229,255,0.15);
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Syne', sans-serif;
+  --body: 'Inter', sans-serif;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  overflow-x: hidden;
+  cursor: default;
+}
+
+/* ─── NOISE OVERLAY ─── */
+body::after {
+  content:'';
+  position:fixed;
+  inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events:none;
+  z-index:9999;
+  opacity:0.4;
+}
+
+/* ─── SIDEBAR ─── */
+.sidebar {
+  position: fixed;
+  left: 0; top: 0; bottom: 0;
+  width: 220px;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+.sidebar-logo {
+  padding: 28px 24px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.logo-knox {
+  font-family: var(--sans);
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  color: var(--accent);
+  text-shadow: 0 0 20px rgba(0,229,255,0.4);
+}
+
+.logo-sub {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 0;
+}
+
+.sidebar-nav::-webkit-scrollbar { width:3px; }
+.sidebar-nav::-webkit-scrollbar-thumb { background: var(--border); }
+
+.nav-section-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text3);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 12px 24px 6px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 24px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-left: 2px solid transparent;
+  font-size: 13px;
+  color: var(--text2);
+  font-weight: 500;
+  user-select: none;
+}
+
+.nav-item:hover {
+  color: var(--text);
+  background: rgba(0,229,255,0.04);
+}
+
+.nav-item.active {
+  color: var(--accent);
+  border-left-color: var(--accent);
+  background: rgba(0,229,255,0.06);
+}
+
+.nav-item .nav-num {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  min-width: 20px;
+}
+
+.nav-item.active .nav-num { color: var(--accent); }
+
+.sidebar-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+}
+
+.status-dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  background: var(--ok);
+  border-radius: 50%;
+  margin-right: 6px;
+  box-shadow: 0 0 6px var(--ok);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* ─── MAIN ─── */
+.main {
+  margin-left: 220px;
+  min-height: 100vh;
+}
+
+/* ─── TOP BAR ─── */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(6,8,16,0.9);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.topbar-crumb {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text3);
+}
+
+.topbar-crumb span { color: var(--accent); }
+
+.topbar-badges {
+  display: flex;
+  gap: 8px;
+}
+
+.badge {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.badge-ok { background: rgba(46,213,115,0.1); color: var(--ok); border: 1px solid rgba(46,213,115,0.2); }
+.badge-warn { background: rgba(255,165,2,0.1); color: var(--warn); border: 1px solid rgba(255,165,2,0.2); }
+.badge-danger { background: rgba(255,71,87,0.1); color: var(--danger); border: 1px solid rgba(255,71,87,0.2); }
+.badge-info { background: rgba(0,229,255,0.1); color: var(--accent); border: 1px solid rgba(0,229,255,0.2); }
+
+/* ─── PAGES ─── */
+.page {
+  display: none;
+  padding: 48px;
+  animation: fadeUp 0.4s ease;
+}
+.page.active { display: block; }
+
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(16px); }
+  to { opacity:1; transform:translateY(0); }
+}
+
+/* ─── PAGE HEADER ─── */
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 48px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid var(--border);
+}
+
+.page-num {
+  font-family: var(--mono);
+  font-size: 72px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--surface2);
+  min-width: 90px;
+  text-align: right;
+  user-select: none;
+}
+
+.page-meta { flex: 1; }
+
+.page-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.page-title {
+  font-family: var(--sans);
+  font-size: 38px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -1px;
+  color: var(--text);
+}
+
+.page-title span { color: var(--accent); }
+
+.page-desc {
+  margin-top: 12px;
+  font-size: 14px;
+  color: var(--text2);
+  line-height: 1.7;
+  max-width: 600px;
+}
+
+/* ─── SECTIONS ─── */
+.section {
+  margin-bottom: 48px;
+}
+
+.section-title {
+  font-family: var(--sans);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-title::before {
+  content:'';
+  width: 3px; height: 18px;
+  background: var(--accent);
+  border-radius: 2px;
+  box-shadow: 0 0 8px var(--accent);
+}
+
+/* ─── CARDS ─── */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.cards-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.cards-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.card-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.card-box:hover {
+  border-color: rgba(0,229,255,0.2);
+  box-shadow: 0 4px 20px rgba(0,229,255,0.06);
+}
+
+.card-box-accent { border-left: 3px solid var(--accent); }
+.card-box-danger { border-left: 3px solid var(--danger); }
+.card-box-warn { border-left: 3px solid var(--warn); }
+.card-box-ok { border-left: 3px solid var(--ok); }
+.card-box-purple { border-left: 3px solid var(--accent2); }
+
+.card-tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.tag-accent { color: var(--accent); }
+.tag-danger { color: var(--danger); }
+.tag-warn { color: var(--warn); }
+.tag-ok { color: var(--ok); }
+.tag-purple { color: var(--accent2); }
+.tag-gold { color: var(--accent3); }
+
+.card-box h3 {
+  font-family: var(--sans);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.card-box p {
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.65;
+}
+
+/* ─── CODE BLOCK ─── */
+.code-block {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 16px 0;
+}
+
+.code-block-header {
+  padding: 10px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.code-block-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text3);
+}
+
+.code-block pre {
+  padding: 16px;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text2);
+  overflow-x: auto;
+}
+
+.code-hl { color: var(--accent); }
+.code-danger { color: var(--danger); }
+.code-ok { color: var(--ok); }
+.code-warn { color: var(--warn); }
+.code-comment { color: var(--text3); font-style: italic; }
+.code-string { color: #a8ff78; }
+
+/* ─── METRICS ROW ─── */
+.metrics-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.metric-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+}
+
+.metric-card.m-cyan::before { background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+.metric-card.m-green::before { background: var(--ok); box-shadow: 0 0 10px var(--ok); }
+.metric-card.m-red::before { background: var(--danger); box-shadow: 0 0 10px var(--danger); }
+.metric-card.m-gold::before { background: var(--accent3); box-shadow: 0 0 10px var(--accent3); }
+.metric-card.m-purple::before { background: var(--accent2); box-shadow: 0 0 10px var(--accent2); }
+
+.metric-value {
+  font-family: var(--mono);
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.metric-card.m-cyan .metric-value { color: var(--accent); }
+.metric-card.m-green .metric-value { color: var(--ok); }
+.metric-card.m-red .metric-value { color: var(--danger); }
+.metric-card.m-gold .metric-value { color: var(--accent3); }
+.metric-card.m-purple .metric-value { color: var(--accent2); }
+
+.metric-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* ─── TABLE ─── */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.data-table thead tr {
+  background: var(--surface);
+  border-bottom: 2px solid var(--border);
+}
+
+.data-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text3);
+  font-weight: 600;
+}
+
+.data-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text2);
+  vertical-align: top;
+}
+
+.data-table tr:hover td { background: rgba(0,229,255,0.02); }
+
+.data-table .td-mono {
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+/* ─── SEVERITY PILLS ─── */
+.sev {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.sev-crit { background: rgba(255,71,87,0.15); color: var(--danger); border: 1px solid rgba(255,71,87,0.3); }
+.sev-high { background: rgba(255,165,2,0.12); color: var(--warn); border: 1px solid rgba(255,165,2,0.25); }
+.sev-med { background: rgba(0,229,255,0.08); color: var(--accent); border: 1px solid rgba(0,229,255,0.2); }
+.sev-low { background: rgba(46,213,115,0.08); color: var(--ok); border: 1px solid rgba(46,213,115,0.2); }
+
+/* ─── PROGRESS BAR ─── */
+.prog-row { margin-bottom: 16px; }
+
+.prog-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text2);
+  margin-bottom: 6px;
+  font-family: var(--mono);
+}
+
+.prog-bar {
+  height: 6px;
+  background: var(--surface2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.prog-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 1s ease;
+}
+
+.prog-cyan { background: linear-gradient(90deg, var(--accent), #00b4d8); box-shadow: 0 0 6px var(--accent); }
+.prog-red { background: linear-gradient(90deg, var(--danger), #ff8fa3); box-shadow: 0 0 6px var(--danger); }
+.prog-green { background: linear-gradient(90deg, var(--ok), #7bed9f); box-shadow: 0 0 6px var(--ok); }
+.prog-gold { background: linear-gradient(90deg, var(--accent3), #ffd32a); box-shadow: 0 0 6px var(--accent3); }
+.prog-purple { background: linear-gradient(90deg, var(--accent2), #a78bfa); box-shadow: 0 0 6px var(--accent2); }
+
+/* ─── DIVIDER ─── */
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 32px 0;
+}
+
+/* ─── ARCHITECTURE DIAGRAM ─── */
+.arch-diagram {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 40px;
+  position: relative;
+}
+
+.arch-layer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.arch-node {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 18px;
+  text-align: center;
+  position: relative;
+  transition: all 0.2s;
+  cursor: default;
+}
+
+.arch-node:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 20px rgba(0,229,255,0.1);
+}
+
+.arch-node-title {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.5px;
+}
+
+.arch-node-sub {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  margin-top: 3px;
+}
+
+.arch-node.n-cyan { border-color: rgba(0,229,255,0.3); }
+.arch-node.n-purple { border-color: rgba(124,58,237,0.3); }
+.arch-node.n-green { border-color: rgba(46,213,115,0.3); }
+.arch-node.n-gold { border-color: rgba(245,158,11,0.3); }
+.arch-node.n-red { border-color: rgba(255,71,87,0.3); }
+
+.arch-arrow {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--text3);
+  font-size: 18px;
+  padding: 4px 0;
+  position: relative;
+}
+
+.arch-arrow::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--border);
+  transform: translateX(-50%);
+  z-index: 0;
+}
+
+.arch-arrow span {
+  background: var(--bg2);
+  padding: 2px 8px;
+  position: relative;
+  z-index: 1;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text3);
+  letter-spacing: 1px;
+}
+
+/* ─── TIMELINE ─── */
+.timeline { position: relative; padding-left: 24px; }
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 7px; top: 0; bottom: 0;
+  width: 1px;
+  background: var(--border);
+}
+
+.timeline-item {
+  position: relative;
+  margin-bottom: 24px;
+  padding-left: 20px;
+}
+
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -20px;
+  top: 6px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}
+
+.timeline-item.ti-warn::before { background: var(--warn); box-shadow: 0 0 8px var(--warn); }
+.timeline-item.ti-danger::before { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+.timeline-item.ti-ok::before { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+.timeline-item.ti-purple::before { background: var(--accent2); box-shadow: 0 0 8px var(--accent2); }
+
+.timeline-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.timeline-title {
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.timeline-desc {
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.6;
+}
+
+/* ─── TOOLTIP CHIP ─── */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text2);
+  margin: 3px;
+}
+
+/* ─── CALLOUT ─── */
+.callout {
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin: 16px 0;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.callout-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+
+.callout-content h4 {
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.callout-content p { font-size: 13px; line-height: 1.6; }
+
+.callout-danger { background: rgba(255,71,87,0.08); border: 1px solid rgba(255,71,87,0.2); color: #ff8a95; }
+.callout-danger h4 { color: var(--danger); }
+.callout-warn { background: rgba(255,165,2,0.08); border: 1px solid rgba(255,165,2,0.2); color: #ffc14d; }
+.callout-warn h4 { color: var(--warn); }
+.callout-ok { background: rgba(46,213,115,0.08); border: 1px solid rgba(46,213,115,0.2); color: #6ee7b7; }
+.callout-ok h4 { color: var(--ok); }
+.callout-info { background: rgba(0,229,255,0.06); border: 1px solid rgba(0,229,255,0.15); color: var(--text2); }
+.callout-info h4 { color: var(--accent); }
+
+/* ─── RADAR CHART ─── */
+.radar-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 48px;
+  padding: 32px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+
+.radar-legend { min-width: 200px; }
+
+.radar-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--text2);
+}
+
+.rl-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.rl-val {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ─── FLOW DIAGRAM ─── */
+.flow {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  overflow-x: auto;
+  padding: 24px 0;
+}
+
+.flow-step {
+  flex: 1;
+  min-width: 120px;
+  text-align: center;
+  position: relative;
+}
+
+.flow-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 10px;
+  margin: 0 8px;
+  transition: all 0.2s;
+}
+
+.flow-box:hover { border-color: var(--accent); box-shadow: 0 0 15px rgba(0,229,255,0.08); }
+
+.flow-icon { font-size: 22px; margin-bottom: 6px; }
+
+.flow-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text2);
+  letter-spacing: 0.5px;
+}
+
+.flow-arrow {
+  color: var(--text3);
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+/* ─── VISUAL GRID ─── */
+.vis-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.vis-panel {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.vis-panel-header {
+  padding: 14px 18px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text2);
+  letter-spacing: 0.5px;
+}
+
+.vis-panel-body { padding: 20px; }
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+/* ─── GLITCH TITLE EFFECT ─── */
+@keyframes glitch {
+  0% { clip-path: inset(0 0 100% 0); }
+  10% { clip-path: inset(10% 0 60% 0); transform: translateX(-3px); }
+  20% { clip-path: inset(30% 0 40% 0); transform: translateX(3px); }
+  30% { clip-path: inset(50% 0 20% 0); transform: translateX(-1px); }
+  40% { clip-path: inset(0 0 0 0); transform: translateX(0); }
+  100% { clip-path: inset(0 0 0 0); transform: translateX(0); }
+}
+
+/* ─── TOGGLE COLLAPSE ─── */
+.collapsible-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: 14px 16px;
+  background: var(--surface);
+  border-radius: 10px;
+  margin-bottom: 1px;
+  border: 1px solid var(--border);
+  user-select: none;
+  transition: background 0.2s;
+}
+
+.collapsible-header:hover { background: var(--surface2); }
+
+.collapsible-title {
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.collapsible-arrow {
+  font-size: 12px;
+  color: var(--text3);
+  transition: transform 0.3s;
+}
+
+.collapsible-body {
+  display: none;
+  padding: 20px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  margin-bottom: 8px;
+}
+
+.collapsible-body.open { display: block; }
+.collapsible-header.open .collapsible-arrow { transform: rotate(90deg); }
+
+/* ─── SCORES PANEL ─── */
+.score-ring {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  background: conic-gradient(var(--accent) calc(var(--pct) * 1%), var(--surface2) 0%);
+  position: relative;
+}
+
+.score-ring::before {
+  content: '';
+  width: 60px; height: 60px;
+  background: var(--surface);
+  border-radius: 50%;
+  position: absolute;
+}
+
+.score-val {
+  position: relative;
+  z-index: 1;
+  font-family: var(--mono);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* ─── ENDPOINT TABLE ─── */
+.ep-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.ep-get { background: rgba(46,213,115,0.12); color: var(--ok); border: 1px solid rgba(46,213,115,0.25); }
+
+/* ─── PRINT PAGE BREAK ─── */
+@media print {
+  .sidebar { display: none; }
+  .main { margin-left: 0; }
+  .page { display: block !important; page-break-after: always; }
+}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-knox">knoX</div>
+    <div class="logo-sub">Report Engine v1.0</div>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-section-label">Informe</div>
+    <div class="nav-item active" onclick="goPage(1,this)">
+      <span class="nav-num">01</span> Análisis General
+    </div>
+    <div class="nav-item" onclick="goPage(2,this)">
+      <span class="nav-num">02</span> Errores Detectados
+    </div>
+    <div class="nav-item" onclick="goPage(3,this)">
+      <span class="nav-num">03</span> Mejoras a Realizar
+    </div>
+    <div class="nav-item" onclick="goPage(4,this)">
+      <span class="nav-num">04</span> Sugerencias knoX
+    </div>
+    <div class="nav-section-label">Arquitectura</div>
+    <div class="nav-item" onclick="goPage(5,this)">
+      <span class="nav-num">05</span> Visión General
+    </div>
+    <div class="nav-item" onclick="goPage(6,this)">
+      <span class="nav-num">06</span> Esquema Visual
+    </div>
+    <div class="nav-item" onclick="goPage(7,this)">
+      <span class="nav-num">07</span> Arquitectura del Sitio
+    </div>
+    <div class="nav-item" onclick="goPage(8,this)">
+      <span class="nav-num">08</span> Flujo de Datos
+    </div>
+    <div class="nav-section-label">Extra</div>
+    <div class="nav-item" onclick="goPage(9,this)">
+      <span class="nav-num">09</span> Seguridad & Riesgos
+    </div>
+    <div class="nav-item" onclick="goPage(10,this)">
+      <span class="nav-num">10</span> Roadmap Técnico
+    </div>
+  </div>
+  <div class="sidebar-footer">
+    <span class="status-dot"></span>AnimeSAO Pro · v3.2.0<br>
+    <span style="margin-left:14px">Análisis: 4 archivos</span>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-crumb">knoX / <span id="crumb-text">Análisis General</span></div>
+    <div class="topbar-badges">
+      <span class="badge badge-danger">8 CRÍTICOS</span>
+      <span class="badge badge-warn">12 MEDIOS</span>
+      <span class="badge badge-ok">v3.2.0</span>
+      <span class="badge badge-info">Node.js</span>
+    </div>
+  </div>
+
+  <!-- ══════════════ PÁGINA 1 ══════════════ -->
+  <div class="page active" id="page-1">
+    <div class="page-header">
+      <div class="page-num">01</div>
+      <div class="page-meta">
+        <div class="page-label">Informe · AnimeSAO Pro</div>
+        <div class="page-title">Análisis <span>Profundo</span></div>
+        <div class="page-desc">Revisión exhaustiva de los 4 archivos fuente: index.html, server.js, script.js y style.css. Se analizan conexiones lógicas, metadatos, extracción de servidores, patrones de cache, y coherencia de la aplicación.</div>
+      </div>
+    </div>
+
+    <div class="metrics-row">
+      <div class="metric-card m-cyan">
+        <div class="metric-value">1453</div>
+        <div class="metric-label">Líneas JS</div>
+      </div>
+      <div class="metric-card m-purple">
+        <div class="metric-value">542</div>
+        <div class="metric-label">Líneas Server</div>
+      </div>
+      <div class="metric-card m-gold">
+        <div class="metric-value">1264</div>
+        <div class="metric-label">Líneas CSS</div>
+      </div>
+      <div class="metric-card m-green">
+        <div class="metric-value">228</div>
+        <div class="metric-label">Líneas HTML</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Stack Tecnológico Detectado</div>
+      <div class="cards-grid-3">
+        <div class="card-box card-box-accent">
+          <div class="card-tag tag-accent">Backend</div>
+          <h3>Node.js + Express</h3>
+          <p>Servidor REST con Express v4, middleware Helmet + CORS. Puerto configurable por ENV. Scraping sobre animeflv.net con Axios + Cheerio.</p>
+        </div>
+        <div class="card-box card-box-purple">
+          <div class="card-tag tag-purple">Frontend</div>
+          <h3>Vanilla JS SPA</h3>
+          <p>Single-Page App sin framework. Arquitectura modular con objetos literales (AppState, API, UIBuilder, HomeManager, etc). Sin bundler.</p>
+        </div>
+        <div class="card-box card-box-ok">
+          <div class="card-tag tag-ok">Persistencia</div>
+          <h3>localStorage + In-Memory</h3>
+          <p>Biblioteca y historial en localStorage. Cache dual: servidor (Map con TTL) + cliente (requestCache Map + pendingRequests). Sin DB.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Extracción de Servidores de Video</div>
+      <div class="code-block">
+        <div class="code-block-header">
+          <span class="code-block-label">server.js · /api/video/:id/:cap — Lógica de extracción</span>
+          <span class="badge badge-warn">SCRAPING</span>
+        </div>
+        <pre><span class="code-comment">// 1. Solicita la página del episodio a animeflv</span>
+GET <span class="code-hl">https://www3.animeflv.net/ver/{id}-{cap}</span>
+
+<span class="code-comment">// 2. Busca el script que contiene var videos = {...}</span>
+<span class="code-hl">scriptData</span>.match(<span class="code-string">/var videos\s*=\s*(\{.*?\});/i</span>)
+
+<span class="code-comment">// 3. Extrae el array SUB y mapea servidores</span>
+videoData.<span class="code-hl">SUB</span>.map(s =&gt; ({
+  name: s.title || s.server,
+  url:  s.code.includes(<span class="code-string">'http'</span>) ? s.code 
+        : <span class="code-string">`https://streamwish.to/e/${s.code}`</span>,  <span class="code-danger">← HARDCODED</span>
+  priority: s.priority
+}))
+
+<span class="code-comment">// 4. Ordena por prioridad, limita a 10, cachea 30min</span>
+.sort((a,b) =&gt; <span class="code-hl">b.priority - a.priority</span>).slice(0, 10)</pre>
+      </div>
+      <div class="callout callout-danger">
+        <div class="callout-icon">⚠️</div>
+        <div class="callout-content">
+          <h4>URL de fallback hardcodeada</h4>
+          <p>Si el código del servidor no contiene "http", se asume que es un ID de Streamwish. Esta asunción es frágil: si animeflv cambia de proveedor de embeds, todos los videos fallan silenciosamente sin error visible al usuario.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Análisis de Metadatos de Anime</div>
+      <div class="code-block">
+        <div class="code-block-header">
+          <span class="code-block-label">server.js · /api/info/:id — Extracción multi-selector con fallback</span>
+        </div>
+        <pre><span class="code-comment">// Título: 7 selectores CSS en cascada + meta OG + título de página</span>
+pickFirstText($, [<span class="code-string">'h1.Title', '.Ficha.fcont .Title', '.Ficha.fcont h2',
+  '.container .Title', 'h1', '.AnimeName', '.Title'</span>])
+  || pickMetaContent($, [<span class="code-string">'meta[property="og:title"]', ...</span>])
+  || $(<span class="code-string">'title'</span>).text().replace(<span class="code-string">/\s*\|.*$/</span>, '')
+
+<span class="code-comment">// Cover: 3 estrategias (CSS selector → alt attr → meta OG)</span>
+<span class="code-hl">$('.AnimeCover img')</span>.attr(<span class="code-string">'src'</span>)
+  || $(<span class="code-string">'img[alt*="Cover"]'</span>).first().attr(<span class="code-string">'src'</span>)
+  || pickMetaContent($, [<span class="code-string">'meta[property="og:image"]', ...</span>])
+
+<span class="code-comment">// Episodios: Parseo de var episodes=[...] desde script inline</span>
+contents.match(<span class="code-string">/var episodes\s*=\s*(\[.*?\]);/i</span>)  <span class="code-warn">← regex no multilinea</span>
+
+<span class="code-comment">// Géneros: .Nvgnrs a · limitado a 10 géneros</span>
+genres.slice(0, 10)</pre>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Sistema de Cache — Análisis Dual</div>
+      <div class="cards-grid-2">
+        <div class="card-box">
+          <div class="card-tag tag-accent">SERVIDOR · In-Memory Map</div>
+          <h3>Cache por TTL dinámico</h3>
+          <div class="prog-row" style="margin-top:12px">
+            <div class="prog-label"><span>latest</span><span>5 min</span></div>
+            <div class="prog-bar"><div class="prog-fill prog-cyan" style="width:17%"></div></div>
+          </div>
+          <div class="prog-row">
+            <div class="prog-label"><span>trending</span><span>15 min</span></div>
+            <div class="prog-bar"><div class="prog-fill prog-purple" style="width:50%"></div></div>
+          </div>
+          <div class="prog-row">
+            <div class="prog-label"><span>info (anime)</span><span>60 min</span></div>
+            <div class="prog-bar"><div class="prog-fill prog-gold" style="width:100%"></div></div>
+          </div>
+          <div class="prog-row">
+            <div class="prog-label"><span>video</span><span>30 min</span></div>
+            <div class="prog-bar"><div class="prog-fill prog-green" style="width:75%"></div></div>
+          </div>
+          <p style="margin-top:12px;font-size:12px;color:var(--text3)">⚠️ Sin límite de tamaño. Con alta concurrencia puede consumir toda la RAM.</p>
+        </div>
+        <div class="card-box">
+          <div class="card-tag tag-purple">CLIENTE · requestCache + pendingRequests</div>
+          <h3>Cache de promesas en vuelo</h3>
+          <p style="margin-top:8px;font-size:13px;color:var(--text2);line-height:1.7">El cliente tiene un sistema de deduplicación de requests simultáneos (pendingRequests Map). Si dos componentes piden el mismo endpoint al mismo tiempo, solo se lanza 1 fetch real.</p>
+          <p style="margin-top:8px;font-size:13px;color:var(--text2)">TTL cliente: 3 minutos automático por setTimeout.</p>
+          <div class="callout callout-warn" style="margin-top:12px">
+            <div class="callout-icon">⚡</div>
+            <div class="callout-content">
+              <h4>Cache no persistida entre páginas</h4>
+              <p>Al navegar entre vistas, el requestCache no se comparte con el cache del servidor, generando doble capa sin coordinación explícita.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Conexiones HTML ↔ JS ↔ CSS</div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Elemento HTML (id/class)</th>
+            <th>Controlado por JS</th>
+            <th>Estilizado por CSS</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="td-mono">#view-home</td><td>Navigation.switchView()</td><td>.view.active</td><td><span class="sev sev-low">OK</span></td></tr>
+          <tr><td class="td-mono">#home-content</td><td>HomeManager.initializeSections()</td><td>.home-section</td><td><span class="sev sev-low">OK</span></td></tr>
+          <tr><td class="td-mono">#recommendations-container</td><td>HomeManager.renderPersonalizedSection()</td><td>.recommendation-panel</td><td><span class="sev sev-low">OK</span></td></tr>
+          <tr><td class="td-mono">#overlay-detail</td><td>DetailOverlay.open/close()</td><td>.overlay .active</td><td><span class="sev sev-low">OK</span></td></tr>
+          <tr><td class="td-mono">#overlay-player</td><td>PlayerOverlay.open/close()</td><td>.player-overlay</td><td><span class="sev sev-med">PARCIAL</span></td></tr>
+          <tr><td class="td-mono">#server-selector</td><td>PlayerOverlay.renderServers()</td><td>.server-select-modern</td><td><span class="sev sev-high">⚠ NO CSS</span></td></tr>
+          <tr><td class="td-mono">#search-input</td><td>Search.setup() + debounce</td><td>.search-wrapper-header</td><td><span class="sev sev-low">OK</span></td></tr>
+          <tr><td class="td-mono">#continue-watching-container</td><td>UIBuilder.renderHistorySection()</td><td>.continue-watching-section</td><td><span class="sev sev-med">DUPLICADO</span></td></tr>
+          <tr><td class="td-mono">#home-sentinel</td><td>IntersectionObserver</td><td>.sentinel</td><td><span class="sev sev-low">OK</span></td></tr>
+          <tr><td class="td-mono">[data-home-filter]</td><td>HomeManager.bindFilterChips()</td><td>.home-chip.active</td><td><span class="sev sev-low">OK</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══════════════ PÁGINA 2 ══════════════ -->
+  <div class="page" id="page-2">
+    <div class="page-header">
+      <div class="page-num">02</div>
+      <div class="page-meta">
+        <div class="page-label">Diagnóstico</div>
+        <div class="page-title">Errores & <span>Bugs</span></div>
+        <div class="page-desc">20 problemas identificados clasificados por severidad. Errores de lógica, CSS duplicado, problemas de seguridad, y fallos de robustez en el parser de contenido externo.</div>
+      </div>
+    </div>
+
+    <div class="metrics-row">
+      <div class="metric-card m-red">
+        <div class="metric-value">8</div>
+        <div class="metric-label">Críticos</div>
+      </div>
+      <div class="metric-card m-gold">
+        <div class="metric-value">7</div>
+        <div class="metric-label">Altos</div>
+      </div>
+      <div class="metric-card m-cyan">
+        <div class="metric-value">5</div>
+        <div class="metric-label">Medios</div>
+      </div>
+      <div class="metric-card m-green">
+        <div class="metric-value">0</div>
+        <div class="metric-label">DB / Auth</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Errores Críticos</div>
+
+      <div style="margin-bottom:8px">
+        <div class="collapsible-header" onclick="toggleCollapse(this)">
+          <span class="collapsible-title">🔴 E01 · Regex sin flag multilinea para parseo de episodios</span>
+          <span class="collapsible-arrow">▶</span>
+        </div>
+        <div class="collapsible-body">
+          <div class="code-block" style="margin-top:0">
+            <div class="code-block-header"><span class="code-block-label">server.js · línea ~389</span></div>
+            <pre><span class="code-comment">// PROBLEMA: el contenido del script puede tener saltos de línea</span>
+<span class="code-danger">const match = contents.match(/var episodes\s*=\s*(\[.*?\]);/i);</span>
+<span class="code-comment">// . no captura \n por defecto → el match falla si hay datos multilínea</span>
+
+<span class="code-comment">// CORRECCIÓN:</span>
+<span class="code-ok">const match = contents.match(/var episodes\s*=\s*(\[[\s\S]*?\]);/i);</span></pre>
+          </div>
+          <p style="font-size:13px;color:var(--text2)">Si animeflv formatea el JS con saltos de línea (lo cual es común al minificar o prettificar), la regex no encuentra el array y devuelve 0 episodios sin lanzar error alguno.</p>
+        </div>
+      </div>
+
+      <div style="margin-bottom:8px">
+        <div class="collapsible-header" onclick="toggleCollapse(this)">
+          <span class="collapsible-title">🔴 E02 · CSS duplicado: .card y .card-img-wrapper definidos dos veces</span>
+          <span class="collapsible-arrow">▶</span>
+        </div>
+        <div class="collapsible-body">
+          <p style="font-size:13px;color:var(--text2);margin-bottom:12px">style.css define <code style="color:var(--accent)">.card</code> en línea ~241 (border-radius:12px, box-shadow básico) y de nuevo en línea ~1108 (border-radius:14px, box-shadow reforzado). La segunda regla sobreescribe a la primera, pero genera confusión de mantenimiento y 40+ líneas de CSS muerto.</p>
+          <div class="callout callout-warn">
+            <div class="callout-icon">🎨</div>
+            <div class="callout-content">
+              <h4>Clases afectadas por duplicación</h4>
+              <p>.card, .card-img-wrapper, .card-img-wrapper img, .card-img-wrapper img.loaded, .card:hover .card-img-wrapper img, .card-title → todos duplicados con valores ligeramente distintos.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:8px">
+        <div class="collapsible-header" onclick="toggleCollapse(this)">
+          <span class="collapsible-title">🔴 E03 · CORS abierto sin restricción de origen</span>
+          <span class="collapsible-arrow">▶</span>
+        </div>
+        <div class="collapsible-body">
+          <div class="code-block" style="margin-top:0">
+            <div class="code-block-header"><span class="code-block-label">server.js · línea 41</span></div>
+            <pre><span class="code-danger">app.use(cors());  // Permite * → cualquier origen puede consultar el API</span>
+
+<span class="code-ok">// Corrección:</span>
+<span class="code-ok">app.use(cors({ origin: ['https://tudominio.com', 'http://localhost:3000'] }));</span></pre>
+          </div>
+          <p style="font-size:13px;color:var(--text2)">Cualquier sitio externo puede hacer peticiones a tu API y usar tu scraper como proxy gratuito, agotando tu cuota de IP en animeflv.</p>
+        </div>
+      </div>
+
+      <div style="margin-bottom:8px">
+        <div class="collapsible-header" onclick="toggleCollapse(this)">
+          <span class="collapsible-title">🔴 E04 · Cache del servidor sin límite de tamaño — Memory Leak</span>
+          <span class="collapsible-arrow">▶</span>
+        </div>
+        <div class="collapsible-body">
+          <p style="font-size:13px;color:var(--text2)">El Map de cache nunca purga entradas antiguas excepto cuando se accede a la key específica y el TTL expiró. Con miles de anime distintos, el cache crece indefinidamente en RAM hasta que el proceso muera o el servidor se reinicie. No hay LRU, no hay límite máximo de entradas.</p>
+          <div class="code-block" style="margin-top:12px">
+            <div class="code-block-header"><span class="code-block-label">Solución mínima</span></div>
+            <pre><span class="code-comment">// Agregar límite de 1000 entradas con LRU manual:</span>
+<span class="code-ok">const MAX_CACHE = 1000;
+const cacheSet = (key, data) => {
+  if (cache.size >= MAX_CACHE) {
+    const firstKey = cache.keys().next().value;
+    cache.delete(firstKey);
+  }
+  cache.set(key, { data, timestamp: Date.now() });
+};</span></pre>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:8px">
+        <div class="collapsible-header" onclick="toggleCollapse(this)">
+          <span class="collapsible-title">🔴 E05 · XSS potencial — innerHTML con datos externos sin sanitizar</span>
+          <span class="collapsible-arrow">▶</span>
+        </div>
+        <div class="collapsible-body">
+          <div class="code-block" style="margin-top:0">
+            <div class="code-block-header"><span class="code-block-label">script.js · UIBuilder.buildCard()</span></div>
+            <pre><span class="code-danger">card.innerHTML = `
+  &lt;div class="card-img-wrapper"&gt;
+    &lt;img src="${coverUrl}" alt="${anime.title}" loading="lazy"&gt;  ← SIN ESCAPAR
+  &lt;/div&gt;
+  &lt;div class="card-title"&gt;${anime.title}&lt;/div&gt;  ← SIN ESCAPAR
+`;</span>
+<span class="code-comment">// Si anime.title contiene &lt;script&gt; o " onload="evil()" el atributo alt es inyectable</span></pre>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:8px">
+        <div class="collapsible-header" onclick="toggleCollapse(this)">
+          <span class="collapsible-title">🔴 E06 · Sin rate limiting en endpoints del API</span>
+          <span class="collapsible-arrow">▶</span>
+        </div>
+        <div class="collapsible-body">
+          <p style="font-size:13px;color:var(--text2)">Ningún endpoint tiene rate limiting. Un bot puede hacer 10,000 peticiones/segundo a /api/latest, generando miles de requests a animeflv desde la misma IP del servidor, resultando en bloqueo de IP. Se recomienda <code style="color:var(--accent)">express-rate-limit</code> con límite de 30-60 req/min por IP.</p>
+        </div>
+      </div>
+
+      <div style="margin-bottom:8px">
+        <div class="collapsible-header" onclick="toggleCollapse(this)">
+          <span class="collapsible-title">🔴 E07 · Regex de video también sin flag multilinea</span>
+          <span class="collapsible-arrow">▶</span>
+        </div>
+        <div class="collapsible-body">
+          <div class="code-block" style="margin-top:0">
+            <div class="code-block-header"><span class="code-block-label">server.js · línea ~498</span></div>
+            <pre><span class="code-danger">const match = scriptData.match(/var videos\s*=\s*(\{.*?\});/i);</span>
+<span class="code-ok">const match = scriptData.match(/var videos\s*=\s*(\{[\s\S]*?\});/i);</span></pre>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:32px">
+        <div class="collapsible-header" onclick="toggleCollapse(this)">
+          <span class="collapsible-title">🔴 E08 · overflow:hidden en body corta el acceso táctil en iOS Safari</span>
+          <span class="collapsible-arrow">▶</span>
+        </div>
+        <div class="collapsible-body">
+          <p style="font-size:13px;color:var(--text2)">style.css línea 38 tiene <code style="color:var(--accent)">overflow: hidden</code> en body. En iOS Safari esto bloquea el scroll nativo del momentum y genera comportamientos inesperados al abrir overlays con contenido scrollable. El scroll interno funciona gracias a <code style="color:var(--accent)">-webkit-overflow-scrolling: touch</code> en .content-scrollable, pero es frágil.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Errores de Lógica Altos</div>
+      <table class="data-table">
+        <thead>
+          <tr><th>#</th><th>Descripción</th><th>Archivo</th><th>Severidad</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="td-mono">E09</td>
+            <td><strong style="color:var(--text)">Estado categoryHasMore nunca se resetea al abrir nueva categoría.</strong> Al navegar entre categorías, si la anterior llegó al fin, la nueva nunca carga.</td>
+            <td class="td-mono">script.js · CategoryManager.open()</td>
+            <td><span class="sev sev-high">ALTO</span></td>
+          </tr>
+          <tr>
+            <td class="td-mono">E10</td>
+            <td><strong style="color:var(--text)">PlayerOverlay.retryCount nunca se define en el objeto base.</strong> Se usa <code>this.retryCount</code> y <code>this.maxRetries</code> pero solo se setean en el override al abrir. Si se llama loadServer() antes de open(), lanza ReferenceError.</td>
+            <td class="td-mono">script.js · ~1395</td>
+            <td><span class="sev sev-high">ALTO</span></td>
+          </tr>
+          <tr>
+            <td class="td-mono">E11</td>
+            <td><strong style="color:var(--text)">AppState.playerProgress definido pero nunca usado.</strong> El campo existe en el estado inicial pero ningún método lo lee ni escribe realmente.</td>
+            <td class="td-mono">script.js · línea 25</td>
+            <td><span class="sev sev-high">ALTO</span></td>
+          </tr>
+          <tr>
+            <td class="td-mono">E12</td>
+            <td><strong style="color:var(--text)">Endpoint /api/genre no implementado en server.js.</strong> El script llama a /api/genre/{genero} pero en server.js no existe ese endpoint. Solo existen /api/latest, /api/trending, /api/search, /api/info, /api/video.</td>
+            <td class="td-mono">server.js (ausente)</td>
+            <td><span class="sev sev-crit">CRÍTICO</span></td>
+          </tr>
+          <tr>
+            <td class="td-mono">E13</td>
+            <td><strong style="color:var(--text)">forceRefresh() en HomeManager no espera initializeSections().</strong> Llama <code>this.initializeSections(true)</code> sin await, el loader podría ocultarse antes de que los datos lleguen.</td>
+            <td class="td-mono">script.js · línea 277</td>
+            <td><span class="sev sev-high">ALTO</span></td>
+          </tr>
+          <tr>
+            <td class="td-mono">E14</td>
+            <td><strong style="color:var(--text)">La búsqueda no tiene debounce aplicado en script.js.</strong> Aunque debounce() está definido, la función search real usa un setTimeout manual separado (searchTimeout) con implementación diferente, inconsistente con el helper.</td>
+            <td class="td-mono">script.js</td>
+            <td><span class="sev sev-med">MEDIO</span></td>
+          </tr>
+          <tr>
+            <td class="td-mono">E15</td>
+            <td><strong style="color:var(--text)">Monkey-patching frágil de objetos.</strong> PlayerOverlay.open, PlayerOverlay.loadServer, PlayerOverlay.close y Library.toggle se sobreescriben con = function() externamente al final del archivo. Si el archivo se divide o refactoriza, el orden de ejecución romperá las funciones originales.</td>
+            <td class="td-mono">script.js · líneas ~1320-1412</td>
+            <td><span class="sev sev-high">ALTO</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Errores Medios / CSS</div>
+      <div class="cards-grid-2">
+        <div class="card-box card-box-warn">
+          <div class="card-tag tag-warn">CSS · E16</div>
+          <h3>setting-info-soft sin clase asociada en HTML</h3>
+          <p>La clase .setting-info-soft está definida en el CSS pero el elemento del HTML usa un div vacío genérico. La clase existe pero requiere añadirla manualmente al HTML.</p>
+        </div>
+        <div class="card-box card-box-warn">
+          <div class="card-tag tag-warn">CSS · E17</div>
+          <h3>Falta hover para .btn-nav-modern en desktop</h3>
+          <p>Solo tiene :active state. En desktop con mouse, no hay feedback visual en hover, lo cual rompe la expectativa de usuario en pantallas grandes.</p>
+        </div>
+        <div class="card-box card-box-warn">
+          <div class="card-tag tag-warn">HTML · E18</div>
+          <h3>manifest.json y icon-192.png referenciados pero no provistos</h3>
+          <p>index.html enlaza manifest.json y icon-192.png para PWA, pero esos archivos no están en el proyecto. La PWA no instalará correctamente.</p>
+        </div>
+        <div class="card-box card-box-warn">
+          <div class="card-tag tag-warn">JS · E19</div>
+          <h3>uniqueById() usada pero no definida en el scope visible</h3>
+          <p>HomeManager.getAllLoadedItems() llama a uniqueById() que aparece en el segmento final del script, pero si hay error de parsing anterior, esta función no existirá.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ PÁGINA 3 ══════════════ -->
+  <div class="page" id="page-3">
+    <div class="page-header">
+      <div class="page-num">03</div>
+      <div class="page-meta">
+        <div class="page-label">Roadmap</div>
+        <div class="page-title">Mejoras a <span>Realizar</span></div>
+        <div class="page-desc">Plan priorizado de mejoras técnicas agrupadas por área. Cada mejora incluye esfuerzo estimado y impacto esperado.</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Prioridad Alta — Funcional</div>
+      <div class="timeline">
+        <div class="timeline-item ti-danger">
+          <div class="timeline-label">Backend · Inmediato</div>
+          <div class="timeline-title">Implementar endpoint /api/genre en server.js</div>
+          <div class="timeline-desc">El frontend llama 8 géneros distintos pero el backend no los sirve. Añadir GET /api/genre/:genre que use /browse?genre={genre}&page={page} con cheerio scraping de .ListAnimes. Esfuerzo: 2h.</div>
+        </div>
+        <div class="timeline-item ti-danger">
+          <div class="timeline-label">Seguridad · Inmediato</div>
+          <div class="timeline-title">Rate Limiting + CORS restrictivo</div>
+          <div class="timeline-desc">Instalar express-rate-limit, limitar a 60 req/min por IP en todos los endpoints. Configurar CORS con lista blanca de orígenes. Esfuerzo: 1h.</div>
+        </div>
+        <div class="timeline-item ti-danger">
+          <div class="timeline-label">Parser · Inmediato</div>
+          <div class="timeline-title">Corregir regex de episodios y videos (flag s o [\s\S])</div>
+          <div class="timeline-desc">Cambiar los 2 regex en server.js para soportar contenido multilinea. Riesgo actual: 0 episodios en animes con JS formateado. Esfuerzo: 15 min.</div>
+        </div>
+        <div class="timeline-item ti-warn">
+          <div class="timeline-label">Frontend · Semana 1</div>
+          <div class="timeline-title">Sanitizar salida HTML en UIBuilder</div>
+          <div class="timeline-desc">Crear función escapeHtml() y aplicarla a anime.title, coverUrl y cualquier dato externo antes de interpolarlo en innerHTML. Alternativamente, usar document.createElement() + .textContent en vez de innerHTML.</div>
+        </div>
+        <div class="timeline-item ti-warn">
+          <div class="timeline-label">CSS · Semana 1</div>
+          <div class="timeline-title">Eliminar duplicación CSS (.card, .card-img-wrapper, .card-title)</div>
+          <div class="timeline-desc">Consolidar las dos definiciones de .card en una sola con los valores finales. Reducir el CSS en ~45 líneas. Mejora la mantenibilidad.</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-label">Cache · Semana 1</div>
+          <div class="timeline-title">Agregar LRU/límite al cache del servidor</div>
+          <div class="timeline-desc">Limitar cache.size a 1000 entradas. Al superar el límite, eliminar la entrada más antigua (FIFO simple). Implementar también un setInterval de limpieza cada 30 min.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Prioridad Media — Robustez</div>
+      <div class="cards-grid-2">
+        <div class="card-box card-box-accent">
+          <div class="card-tag tag-accent">Refactor</div>
+          <h3>Eliminar Monkey-Patching</h3>
+          <p>Mover toda la lógica de PlayerOverlay y Library a sus definiciones originales, usando métodos internos. Eliminar las reasignaciones con = function() al final del archivo. Reducirá bugs al refactorizar.</p>
+        </div>
+        <div class="card-box card-box-accent">
+          <div class="card-tag tag-accent">UX</div>
+          <h3>Agregar hover a btn-nav-modern</h3>
+          <p>Añadir .btn-nav-modern:hover con background sutil y transition. La app es responsive y usable en desktop pero carece de feedback hover en los botones del player.</p>
+        </div>
+        <div class="card-box card-box-accent">
+          <div class="card-tag tag-accent">PWA</div>
+          <h3>Crear manifest.json e iconos</h3>
+          <p>Generar manifest.json con name, short_name, start_url, theme_color (#0a0e27), background_color, display: standalone. Agregar icon-192.png e icon-512.png para instalación correcta.</p>
+        </div>
+        <div class="card-box card-box-accent">
+          <div class="card-tag tag-accent">Lógica</div>
+          <h3>Resetear categoryHasMore en CategoryManager.open()</h3>
+          <p>Ya se hace <code style="color:var(--accent)">AppState.categoryHasMore = true</code> en open(), pero verificar que también se reseteen categoryPage y categoryLoading para evitar estados colgados entre vistas.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Prioridad Baja — Calidad de Código</div>
+      <div class="cards-grid-3">
+        <div class="card-box">
+          <div class="card-tag tag-gold">Código Muerto</div>
+          <h3>AppState.playerProgress</h3>
+          <p>Eliminar o implementar. Actualmente es un campo fantasma que ocupa memoria y genera confusión sobre si existe tracking de progreso de video.</p>
+        </div>
+        <div class="card-box">
+          <div class="card-tag tag-gold">Consistencia</div>
+          <h3>Unificar debounce</h3>
+          <p>La función debounce() está definida pero la búsqueda usa su propio setTimeout manual. Refactorizar Search.setup() para usar debounce(searchFn, 400).</p>
+        </div>
+        <div class="card-box">
+          <div class="card-tag tag-gold">Logging</div>
+          <h3>Logger centralizado</h3>
+          <p>Reemplazar console.error() dispersos por un módulo Logger con niveles (debug, info, warn, error) y flag de entorno para silenciar en producción.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ PÁGINA 4 ══════════════ -->
+  <div class="page" id="page-4">
+    <div class="page-header">
+      <div class="page-num">04</div>
+      <div class="page-meta">
+        <div class="page-label">knoX Intelligence</div>
+        <div class="page-title">Sugerencias <span>Propuestas</span></div>
+        <div class="page-desc">4 propuestas de mejora proactivas sugeridas por knoX basadas en el análisis del proyecto — más allá de los bugs existentes.</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Propuesta 1 — Sistema de Fallback Multi-Proveedor</div>
+      <div class="card-box card-box-accent" style="margin-bottom:16px">
+        <div class="card-tag tag-accent">Resiliencia · Esfuerzo: 3 días</div>
+        <h3>Abstracción de fuentes de datos con adaptadores</h3>
+        <p style="margin-top:8px">Actualmente, toda la lógica de scraping apunta exclusivamente a <strong>www3.animeflv.net</strong>. Si el dominio cambia, la app queda completamente inoperativa. knoX propone crear una capa de abstracción con múltiples adaptadores:</p>
+      </div>
+      <div class="code-block">
+        <div class="code-block-header"><span class="code-block-label">Arquitectura sugerida</span></div>
+        <pre><span class="code-comment">// providers/animeflv.js</span>
+<span class="code-ok">module.exports = { getLatest, getTrending, getGenre, getInfo, getVideo }</span>
+
+<span class="code-comment">// providers/backup-provider.js (jkanime, monoschinos, etc)</span>
+<span class="code-ok">module.exports = { getLatest, getTrending, ... }</span>
+
+<span class="code-comment">// services/anime-service.js</span>
+<span class="code-ok">const providers = [animeflv, backupProvider];
+async function withFallback(method, ...args) {
+  for (const p of providers) {
+    try { return await p[method](...args); } 
+    catch { continue; }
+  }
+  throw new Error('Todos los proveedores fallaron');
+}</span></pre>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Propuesta 2 — Service Worker para modo Offline</div>
+      <div class="card-box card-box-purple" style="margin-bottom:16px">
+        <div class="card-tag tag-purple">PWA · Esfuerzo: 2 días</div>
+        <h3>Cache de assets y datos via Service Worker</h3>
+        <p style="margin-top:8px">La app ya tiene manifest.json referenciado y está pensada como PWA móvil. Añadir un Service Worker que cachée los assets estáticos (HTML, CSS, JS, fonts) y las respuestas de la API de info de animes ya visitados permitiría navegación offline de la biblioteca.</p>
+      </div>
+      <div class="cards-grid-2">
+        <div class="card-box">
+          <div class="card-tag tag-purple">Cache Shell</div>
+          <h3>App Shell Strategy</h3>
+          <p>Cachear index.html, style.css, script.js en install. Servir desde cache en fetch si sin red.</p>
+        </div>
+        <div class="card-box">
+          <div class="card-tag tag-purple">Runtime Cache</div>
+          <h3>Stale-While-Revalidate</h3>
+          <p>Para /api/info/* y /api/trending: servir el cache inmediatamente mientras se actualiza en background.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Propuesta 3 — Sistema de Recomendaciones Mejorado</div>
+      <div class="card-box card-box-ok" style="margin-bottom:16px">
+        <div class="card-tag tag-ok">ML Simple · Esfuerzo: 4 días</div>
+        <h3>Vector de preferencias con TF-IDF local</h3>
+        <p style="margin-top:8px">El sistema actual de Recommendations es básico: cuenta cuántas veces aparece cada género en el historial. knoX propone evolucionarlo a un scoring basado en señales múltiples:</p>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Señal</th><th>Peso sugerido</th><th>Fuente</th></tr></thead>
+        <tbody>
+          <tr><td>Géneros de animes vistos</td><td class="td-mono">×3</td><td>AppState.history</td></tr>
+          <tr><td>Géneros de favoritos</td><td class="td-mono">×5</td><td>AppState.library</td></tr>
+          <tr><td>Tiempo en pantalla de detalle</td><td class="td-mono">×2</td><td>performance.now()</td></tr>
+          <tr><td>Episodios completados</td><td class="td-mono">×4</td><td>historyItem.progress</td></tr>
+          <tr><td>Recencia (decay factor)</td><td class="td-mono">×0.9^días</td><td>timestamp del historial</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Propuesta 4 — Panel de Administración / Health Monitor</div>
+      <div class="card-box card-box-warn" style="margin-bottom:16px">
+        <div class="card-tag tag-warn">DevOps · Esfuerzo: 1 día</div>
+        <h3>Dashboard de salud del servidor en /admin</h3>
+        <p style="margin-top:8px">El endpoint /api/health solo devuelve <code style="color:var(--accent)">{ success: true, status: 'online', cached_items: N }</code>. knoX propone expandirlo a un dashboard completo:</p>
+      </div>
+      <div class="cards-grid-3">
+        <div class="card-box">
+          <div class="card-tag tag-warn">Métrica 1</div>
+          <h3>Uptime del proceso</h3>
+          <p>process.uptime() en segundos + timestamp de inicio del servidor.</p>
+        </div>
+        <div class="card-box">
+          <div class="card-tag tag-warn">Métrica 2</div>
+          <h3>Uso de memoria</h3>
+          <p>process.memoryUsage() → heapUsed / heapTotal. Alerta si >80%.</p>
+        </div>
+        <div class="card-box">
+          <div class="card-tag tag-warn">Métrica 3</div>
+          <h3>Estado de animeflv</h3>
+          <p>Ping periódico a la fuente y registro del último código HTTP recibido.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ PÁGINA 5 ══════════════ -->
+  <div class="page" id="page-5">
+    <div class="page-header">
+      <div class="page-num">05</div>
+      <div class="page-meta">
+        <div class="page-label">Overview</div>
+        <div class="page-title">Visión <span>General</span></div>
+        <div class="page-desc">AnimeSAO Pro es una Progressive Web App móvil para streaming de anime en español, construida como cliente del sitio animeflv.net mediante scraping web automatizado.</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Scorecard de la Aplicación</div>
+      <div class="metrics-row" style="grid-template-columns: repeat(5,1fr)">
+        <div class="metric-card m-green">
+          <div class="metric-value">72</div>
+          <div class="metric-label">UX Score</div>
+        </div>
+        <div class="metric-card m-gold">
+          <div class="metric-value">58</div>
+          <div class="metric-label">Seguridad</div>
+        </div>
+        <div class="metric-card m-cyan">
+          <div class="metric-value">65</div>
+          <div class="metric-label">Performance</div>
+        </div>
+        <div class="metric-card m-purple">
+          <div class="metric-value">48</div>
+          <div class="metric-label">Robustez</div>
+        </div>
+        <div class="metric-card m-red">
+          <div class="metric-value">61</div>
+          <div class="metric-label">Mantenib.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Funcionalidades Implementadas</div>
+      <div class="cards-grid-3">
+        <div class="card-box card-box-ok">
+          <div class="card-tag tag-ok">✓ Implementado</div>
+          <h3>Catálogo Multi-Género</h3>
+          <p>10 secciones de contenido: Latest, Trending, Acción, Comedia, Romance, Fantasía, Isekai, Drama, Shounen, Misterio. Carga lazy con IntersectionObserver.</p>
+        </div>
+        <div class="card-box card-box-ok">
+          <div class="card-tag tag-ok">✓ Implementado</div>
+          <h3>Búsqueda en Tiempo Real</h3>
+          <p>Input con debounce manual de 400ms. Resultados en grid. Clear button visible. Cache de resultados por query string.</p>
+        </div>
+        <div class="card-box card-box-ok">
+          <div class="card-tag tag-ok">✓ Implementado</div>
+          <h3>Player con Multi-Servidor</h3>
+          <p>Selector de servidor dropdown. Botones Anterior/Siguiente episodio. Retry automático en error de iframe. Historial de episodio al cargar.</p>
+        </div>
+        <div class="card-box card-box-ok">
+          <div class="card-tag tag-ok">✓ Implementado</div>
+          <h3>Biblioteca Personal</h3>
+          <p>Guardar/quitar favoritos. Persistencia localStorage. Vista de biblioteca con grid. Botón toggle animado en detalle.</p>
+        </div>
+        <div class="card-box card-box-ok">
+          <div class="card-tag tag-ok">✓ Implementado</div>
+          <h3>Historial & Continuar</h3>
+          <p>Sección "Continuar Viendo" en home. Barra de progreso por anime. Máximo 10 ítems mostrados.</p>
+        </div>
+        <div class="card-box card-box-ok">
+          <div class="card-tag tag-ok">✓ Implementado</div>
+          <h3>Recomendaciones Personales</h3>
+          <p>Panel "Para ti" basado en géneros del historial y biblioteca. Ranking con señales combinadas. Refresh manual.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Dependencias del Proyecto</div>
+      <div class="cards-grid-2">
+        <div class="card-box">
+          <div class="card-tag tag-accent">Backend (npm)</div>
+          <h3>5 dependencias directas</h3>
+          <div style="margin-top:12px">
+            <div class="chip">express</div>
+            <div class="chip">axios</div>
+            <div class="chip">cheerio</div>
+            <div class="chip">helmet</div>
+            <div class="chip">cors</div>
+          </div>
+          <p style="margin-top:12px;font-size:12px;color:var(--text3)">Sin ORM, sin autenticación, sin base de datos. Stack mínimo.</p>
+        </div>
+        <div class="card-box">
+          <div class="card-tag tag-purple">Frontend (CDN)</div>
+          <h3>1 dependencia externa</h3>
+          <div style="margin-top:12px">
+            <div class="chip">Google Fonts · Inter</div>
+          </div>
+          <p style="margin-top:12px;font-size:12px;color:var(--text3)">Sin jQuery, sin React, sin Vue. Vanilla JS puro. Sin bundler (Webpack/Vite). Esto es una fortaleza para carga rápida pero implica mantenimiento manual del código.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Evaluación de Madurez por Área</div>
+      <div class="prog-row">
+        <div class="prog-label"><span>UI/UX Diseño Visual</span><span>82%</span></div>
+        <div class="prog-bar"><div class="prog-fill prog-cyan" style="width:82%"></div></div>
+      </div>
+      <div class="prog-row">
+        <div class="prog-label"><span>Lógica de Negocio Frontend</span><span>70%</span></div>
+        <div class="prog-bar"><div class="prog-fill prog-green" style="width:70%"></div></div>
+      </div>
+      <div class="prog-row">
+        <div class="prog-label"><span>Backend / API</span><span>60%</span></div>
+        <div class="prog-bar"><div class="prog-fill prog-purple" style="width:60%"></div></div>
+      </div>
+      <div class="prog-row">
+        <div class="prog-label"><span>Seguridad</span><span>35%</span></div>
+        <div class="prog-bar"><div class="prog-fill prog-red" style="width:35%"></div></div>
+      </div>
+      <div class="prog-row">
+        <div class="prog-label"><span>Calidad de Código / Mantenibilidad</span><span>55%</span></div>
+        <div class="prog-bar"><div class="prog-fill prog-gold" style="width:55%"></div></div>
+      </div>
+      <div class="prog-row">
+        <div class="prog-label"><span>PWA / Installability</span><span>30%</span></div>
+        <div class="prog-bar"><div class="prog-fill prog-red" style="width:30%"></div></div>
+      </div>
+      <div class="prog-row">
+        <div class="prog-label"><span>Testing / Cobertura</span><span>0%</span></div>
+        <div class="prog-bar"><div class="prog-fill prog-red" style="width:1%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ PÁGINA 6 ══════════════ -->
+  <div class="page" id="page-6">
+    <div class="page-header">
+      <div class="page-num">06</div>
+      <div class="page-meta">
+        <div class="page-label">Visual</div>
+        <div class="page-title">Esquema <span>Visual</span></div>
+        <div class="page-desc">Representación visual de las vistas, overlays, componentes y relaciones de la interfaz de usuario de AnimeSAO Pro.</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Mapa de Vistas de la App</div>
+      <div class="vis-grid">
+        <div class="vis-panel">
+          <div class="vis-panel-header">📱 #view-home · Vista Principal</div>
+          <div class="vis-panel-body">
+            <div style="background:var(--surface2);border-radius:8px;padding:10px;margin-bottom:8px;font-family:var(--mono);font-size:11px;color:var(--text3)">#continue-watching-container</div>
+            <div style="background:var(--surface2);border-radius:8px;padding:10px;margin-bottom:8px;font-family:var(--mono);font-size:11px;color:var(--accent)">#home-toolbar [Para ti · Nuevos · Populares · ...]</div>
+            <div style="background:var(--surface2);border-radius:8px;padding:10px;margin-bottom:8px;font-family:var(--mono);font-size:11px;color:var(--text3)">#recommendations-container · Sección Para Ti</div>
+            <div style="background:var(--surface2);border-radius:8px;padding:10px;font-family:var(--mono);font-size:11px;color:var(--text3)">#home-content · 10 secciones lazy-loaded</div>
+          </div>
+        </div>
+        <div class="vis-panel">
+          <div class="vis-panel-header">🔍 #view-search · Búsqueda</div>
+          <div class="vis-panel-body">
+            <div style="background:var(--surface2);border-radius:8px;padding:10px;margin-bottom:8px;font-family:var(--mono);font-size:11px;color:var(--accent)">.search-wrapper-header [input + clear btn]</div>
+            <div style="background:var(--surface2);border-radius:8px;padding:10px;margin-bottom:8px;font-family:var(--mono);font-size:11px;color:var(--text3)">#search-message · Estado vacío</div>
+            <div style="background:var(--surface2);border-radius:8px;padding:10px;font-family:var(--mono);font-size:11px;color:var(--text3)">#search-grid · Grid de resultados</div>
+          </div>
+        </div>
+        <div class="vis-panel">
+          <div class="vis-panel-header">📚 #view-library · Biblioteca</div>
+          <div class="vis-panel-body">
+            <div style="background:var(--surface2);border-radius:8px;padding:10px;margin-bottom:8px;font-family:var(--mono);font-size:11px;color:var(--accent)">.library-header · Mi Biblioteca</div>
+            <div style="background:var(--surface2);border-radius:8px;padding:10px;margin-bottom:8px;font-family:var(--mono);font-size:11px;color:var(--text3)">#library-grid · Favoritos guardados</div>
+            <div style="background:var(--surface2);border-radius:8px;padding:10px;font-family:var(--mono);font-size:11px;color:var(--text3)">#library-empty · Estado vacío</div>
+          </div>
+        </div>
+        <div class="vis-panel">
+          <div class="vis-panel-header">⚙️ #view-settings · Ajustes</div>
+          <div class="vis-panel-body">
+            <div style="background:var(--surface2);border-radius:8px;padding:10px;margin-bottom:8px;font-family:var(--mono);font-size:11px;color:var(--danger)">#btn-clear-cache · Limpiar datos locales</div>
+            <div style="background:var(--surface2);border-radius:8px;padding:10px;margin-bottom:8px;font-family:var(--mono);font-size:11px;color:var(--text3)">.setting-info · Versión de la app</div>
+            <div style="background:var(--surface2);border-radius:8px;padding:10px;font-family:var(--mono);font-size:11px;color:var(--text3)">.setting-info-soft · Perfil inteligente</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="section">
+      <div class="section-title">Overlays (z-index superior a las vistas)</div>
+      <div class="cards-grid-2">
+        <div class="card-box card-box-accent">
+          <div class="card-tag tag-accent">Overlay 1 · #overlay-detail</div>
+          <h3>Detalle de Anime</h3>
+          <div style="margin-top:12px;font-family:var(--mono);font-size:11px;color:var(--text3);line-height:1.9">
+            .detail-backdrop (imagen de fondo blur)<br>
+            .detail-cover (portada)<br>
+            #detail-title, #detail-status<br>
+            #detail-genres (chips de géneros)<br>
+            #detail-synopsis (texto)<br>
+            #detail-episodes (grid de episodios)<br>
+            #btn-library (toggle favorito)
+          </div>
+        </div>
+        <div class="card-box card-box-purple">
+          <div class="card-tag tag-purple">Overlay 2 · #overlay-player</div>
+          <h3>Player de Video</h3>
+          <div style="margin-top:12px;font-family:var(--mono);font-size:11px;color:var(--text3);line-height:1.9">
+            .player-header (título + botón volver)<br>
+            #player-container (iframe + loader + error)<br>
+            #player-iframe (embed externo)<br>
+            #server-selector (dropdown servidores)<br>
+            .ep-nav-modern (prev/next episodio)
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Paleta de Colores del Proyecto</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <div style="text-align:center">
+          <div style="width:60px;height:60px;background:#0a0e27;border-radius:10px;border:1px solid rgba(255,255,255,0.1)"></div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:6px">--bg-primary</div>
+        </div>
+        <div style="text-align:center">
+          <div style="width:60px;height:60px;background:#10152d;border-radius:10px;border:1px solid rgba(255,255,255,0.1)"></div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:6px">--bg-secondary</div>
+        </div>
+        <div style="text-align:center">
+          <div style="width:60px;height:60px;background:#1a1f3a;border-radius:10px;border:1px solid rgba(255,255,255,0.1)"></div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:6px">--bg-tertiary</div>
+        </div>
+        <div style="text-align:center">
+          <div style="width:60px;height:60px;background:#242d4a;border-radius:10px;border:1px solid rgba(255,255,255,0.1)"></div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:6px">--bg-surface</div>
+        </div>
+        <div style="text-align:center">
+          <div style="width:60px;height:60px;background:#6366f1;border-radius:10px"></div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:6px">--accent-primary</div>
+        </div>
+        <div style="text-align:center">
+          <div style="width:60px;height:60px;background:#8b5cf6;border-radius:10px"></div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:6px">--accent-secondary</div>
+        </div>
+        <div style="text-align:center">
+          <div style="width:60px;height:60px;background:#ff6b6b;border-radius:10px"></div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:6px">--error</div>
+        </div>
+        <div style="text-align:center">
+          <div style="width:60px;height:60px;background:#10b981;border-radius:10px"></div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:6px">--success</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ PÁGINA 7 ══════════════ -->
+  <div class="page" id="page-7">
+    <div class="page-header">
+      <div class="page-num">07</div>
+      <div class="page-meta">
+        <div class="page-label">Arquitectura</div>
+        <div class="page-title">Arquitectura <span>Completa</span></div>
+        <div class="page-desc">Visión de alto nivel de toda la arquitectura del sistema: capas, componentes, y relaciones entre módulos.</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Diagrama de Capas del Sistema</div>
+      <div class="arch-diagram">
+
+        <div style="text-align:center;font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:2px;margin-bottom:20px;text-transform:uppercase">CLIENTE (Browser / WebView)</div>
+
+        <div class="arch-layer">
+          <div class="arch-node n-cyan">
+            <div class="arch-node-title">🎨 UI Layer</div>
+            <div class="arch-node-sub">index.html + style.css</div>
+          </div>
+        </div>
+
+        <div class="arch-arrow"><span>↕ DOM Events / Render</span></div>
+
+        <div class="arch-layer">
+          <div class="arch-node n-purple" style="flex:0.8">
+            <div class="arch-node-title">AppState</div>
+            <div class="arch-node-sub">Estado global singleton</div>
+          </div>
+          <div class="arch-node n-purple" style="flex:1.2">
+            <div class="arch-node-title">Navigation</div>
+            <div class="arch-node-sub">switchView() + bottom nav</div>
+          </div>
+          <div class="arch-node n-purple" style="flex:0.8">
+            <div class="arch-node-title">Recommendations</div>
+            <div class="arch-node-sub">Pref scoring</div>
+          </div>
+        </div>
+
+        <div class="arch-arrow"><span>↕ Data / Render</span></div>
+
+        <div class="arch-layer">
+          <div class="arch-node n-gold">
+            <div class="arch-node-title">HomeManager</div>
+            <div class="arch-node-sub">Secciones lazy + IntersectionObserver</div>
+          </div>
+          <div class="arch-node n-gold">
+            <div class="arch-node-title">CategoryManager</div>
+            <div class="arch-node-sub">Vista de género + paginación</div>
+          </div>
+          <div class="arch-node n-gold">
+            <div class="arch-node-title">Search</div>
+            <div class="arch-node-sub">Input + debounce + cache</div>
+          </div>
+        </div>
+
+        <div class="arch-layer" style="margin-top:8px">
+          <div class="arch-node n-gold">
+            <div class="arch-node-title">DetailOverlay</div>
+            <div class="arch-node-sub">Info anime + episodios</div>
+          </div>
+          <div class="arch-node n-gold">
+            <div class="arch-node-title">PlayerOverlay</div>
+            <div class="arch-node-sub">iframe + servidores + retry</div>
+          </div>
+          <div class="arch-node n-gold">
+            <div class="arch-node-title">Library</div>
+            <div class="arch-node-sub">Favoritos localStorage</div>
+          </div>
+        </div>
+
+        <div class="arch-arrow"><span>↕ fetch() HTTP</span></div>
+
+        <div class="arch-layer">
+          <div class="arch-node n-cyan">
+            <div class="arch-node-title">📡 API Client</div>
+            <div class="arch-node-sub">requestCache + pendingRequests</div>
+          </div>
+          <div class="arch-node n-cyan">
+            <div class="arch-node-title">UIBuilder</div>
+            <div class="arch-node-sub">buildCard() + renderHistorySection()</div>
+          </div>
+        </div>
+
+        <div style="border-top:2px dashed rgba(0,229,255,0.2);margin:28px 0;position:relative">
+          <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--bg2);padding:0 16px;font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:2px;text-transform:uppercase">SERVIDOR (Node.js)</div>
+        </div>
+
+        <div class="arch-layer">
+          <div class="arch-node n-green">
+            <div class="arch-node-title">Express Router</div>
+            <div class="arch-node-sub">/api/latest · /api/trending · /api/search · /api/info · /api/video · /api/health</div>
+          </div>
+        </div>
+
+        <div class="arch-arrow"><span>↕ Middleware</span></div>
+
+        <div class="arch-layer">
+          <div class="arch-node n-cyan" style="flex:0.7">
+            <div class="arch-node-title">Helmet</div>
+            <div class="arch-node-sub">HTTP headers</div>
+          </div>
+          <div class="arch-node n-cyan" style="flex:0.7">
+            <div class="arch-node-title">CORS</div>
+            <div class="arch-node-sub">Open *</div>
+          </div>
+          <div class="arch-node n-purple" style="flex:1.5">
+            <div class="arch-node-title">Cache Map (TTL)</div>
+            <div class="arch-node-sub">latest 5m · trending 15m · info 60m · video 30m</div>
+          </div>
+          <div class="arch-node n-gold" style="flex:0.8">
+            <div class="arch-node-title">Retry Logic</div>
+            <div class="arch-node-sub">3 intentos exp.</div>
+          </div>
+        </div>
+
+        <div class="arch-arrow"><span>↕ HTTP Axios + User-Agent Spoofing</span></div>
+
+        <div class="arch-layer">
+          <div class="arch-node n-red">
+            <div class="arch-node-title">🌐 animeflv.net</div>
+            <div class="arch-node-sub">Fuente externa · www3.animeflv.net</div>
+          </div>
+          <div class="arch-node" style="flex:0.5;opacity:0.5">
+            <div class="arch-node-title">Cheerio</div>
+            <div class="arch-node-sub">HTML Parser</div>
+          </div>
+        </div>
+
+        <div style="text-align:center;font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:2px;margin-top:20px;text-transform:uppercase">FUENTE DE DATOS EXTERNA (Sin control)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ PÁGINA 8 ══════════════ -->
+  <div class="page" id="page-8">
+    <div class="page-header">
+      <div class="page-num">08</div>
+      <div class="page-meta">
+        <div class="page-label">Data Flow</div>
+        <div class="page-title">Flujo de <span>Información</span></div>
+        <div class="page-desc">Cómo se procesa la información desde la solicitud del usuario hasta el renderizado en pantalla, pasando por el backend y el scraping.</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Flujo: Usuario abre un anime → Ve el episodio</div>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-label">Paso 1 · Usuario</div>
+          <div class="timeline-title">Click en card de anime en el home</div>
+          <div class="timeline-desc">UIBuilder.buildCard() registra un event listener en el click del card. Se invoca DetailOverlay.open(animeId).</div>
+        </div>
+        <div class="timeline-item ti-purple">
+          <div class="timeline-label">Paso 2 · Frontend</div>
+          <div class="timeline-title">API.getInfo(id) → fetch /api/info/{id}</div>
+          <div class="timeline-desc">El cliente verifica pendingRequests (¿ya hay una petición en vuelo?) y requestCache (¿tenemos datos frescos?). Si no, lanza fetch real al servidor.</div>
+        </div>
+        <div class="timeline-item ti-warn">
+          <div class="timeline-label">Paso 3 · Servidor</div>
+          <div class="timeline-title">Cache check → Axios a animeflv</div>
+          <div class="timeline-desc">El servidor revisa su Map de cache con TTL de 60 min para info. Si miss, hace GET a https://www3.animeflv.net/anime/{id} con headers spoofed (User-Agent de Chrome).</div>
+        </div>
+        <div class="timeline-item ti-danger">
+          <div class="timeline-label">Paso 4 · Scraping</div>
+          <div class="timeline-title">Cheerio parsea el HTML de animeflv</div>
+          <div class="timeline-desc">Extrae: título (7 selectores en cascada), cover (3 estrategias), géneros (.Nvgnrs a), sinopsis (.Description p), estado (.AnmStts span), episodios (regex sobre script inline var episodes=[...]).</div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-label">Paso 5 · Respuesta</div>
+          <div class="timeline-title">JSON normalizado → Cliente → Render</div>
+          <div class="timeline-desc">El servidor normaliza y cachea la respuesta. El cliente la recibe, actualiza AppState.currentAnime, llama Recommendations.updateWeights(genres), y renderiza el overlay de detalle.</div>
+        </div>
+        <div class="timeline-item ti-ok">
+          <div class="timeline-label">Paso 6 · Episodio</div>
+          <div class="timeline-title">PlayerOverlay.open(epNumber)</div>
+          <div class="timeline-desc">Llama API.getVideo(id, epNumber) → /api/video/{id}/{cap} → Axios a /ver/{id}-{cap} → Regex busca var videos={...} → extrae array SUB → mapea URLs de servidores → retorna al cliente → iframe carga el primer servidor.</div>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="section">
+      <div class="section-title">Flujo Simplificado — Diagrama de Bloques</div>
+      <div class="flow">
+        <div class="flow-step">
+          <div class="flow-box">
+            <div class="flow-icon">👤</div>
+            <div class="flow-label">Usuario</div>
+          </div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-box">
+            <div class="flow-icon">📱</div>
+            <div class="flow-label">UI Click</div>
+          </div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-box">
+            <div class="flow-icon">🔄</div>
+            <div class="flow-label">API Client</div>
+          </div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-box">
+            <div class="flow-icon">🖥️</div>
+            <div class="flow-label">Express</div>
+          </div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-box">
+            <div class="flow-icon">💾</div>
+            <div class="flow-label">Cache?</div>
+          </div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-box">
+            <div class="flow-icon">🌐</div>
+            <div class="flow-label">animeflv</div>
+          </div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-box">
+            <div class="flow-icon">⚙️</div>
+            <div class="flow-label">Cheerio</div>
+          </div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-step">
+          <div class="flow-box">
+            <div class="flow-icon">📺</div>
+            <div class="flow-label">Render</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Endpoints del API — Especificación</div>
+      <table class="data-table">
+        <thead>
+          <tr><th>Endpoint</th><th>Método</th><th>Parámetros</th><th>Cache TTL</th><th>Fuente Scraping</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="td-mono">/api/latest</td>
+            <td><span class="ep-pill ep-get">GET</span></td>
+            <td class="td-mono">?page=N &amp;nocache</td>
+            <td class="td-mono">5 min</td>
+            <td class="td-mono">/browse?order=added</td>
+          </tr>
+          <tr>
+            <td class="td-mono">/api/trending</td>
+            <td><span class="ep-pill ep-get">GET</span></td>
+            <td class="td-mono">?nocache</td>
+            <td class="td-mono">15 min</td>
+            <td class="td-mono">/ (homepage) → fallback /browse?order=rating</td>
+          </tr>
+          <tr>
+            <td class="td-mono">/api/search</td>
+            <td><span class="ep-pill ep-get">GET</span></td>
+            <td class="td-mono">?q=query</td>
+            <td class="td-mono">5 min</td>
+            <td class="td-mono">/browse?q={query}</td>
+          </tr>
+          <tr>
+            <td class="td-mono">/api/info/:id</td>
+            <td><span class="ep-pill ep-get">GET</span></td>
+            <td class="td-mono">:id (slug)</td>
+            <td class="td-mono">60 min</td>
+            <td class="td-mono">/anime/{id}</td>
+          </tr>
+          <tr>
+            <td class="td-mono">/api/video/:id/:cap</td>
+            <td><span class="ep-pill ep-get">GET</span></td>
+            <td class="td-mono">:id :cap (número)</td>
+            <td class="td-mono">30 min</td>
+            <td class="td-mono">/ver/{id}-{cap}</td>
+          </tr>
+          <tr>
+            <td class="td-mono">/api/health</td>
+            <td><span class="ep-pill ep-get">GET</span></td>
+            <td class="td-mono">—</td>
+            <td class="td-mono">Sin cache</td>
+            <td class="td-mono">Interno (cache.size)</td>
+          </tr>
+          <tr>
+            <td class="td-mono" style="color:var(--danger)">/api/genre/:genre</td>
+            <td><span class="ep-pill ep-get">GET</span></td>
+            <td class="td-mono">:genre ?page=N</td>
+            <td class="td-mono" style="color:var(--danger)">❌ NO EXISTE</td>
+            <td class="td-mono" style="color:var(--danger)">Sin implementar</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══════════════ PÁGINA 9 ══════════════ -->
+  <div class="page" id="page-9">
+    <div class="page-header">
+      <div class="page-num">09</div>
+      <div class="page-meta">
+        <div class="page-label">Seguridad</div>
+        <div class="page-title">Riesgos & <span>Seguridad</span></div>
+        <div class="page-desc">Análisis de la superficie de ataque, vectores de riesgo, y evaluación de las medidas de seguridad actuales del sistema.</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Matriz de Riesgos</div>
+      <table class="data-table">
+        <thead>
+          <tr><th>Riesgo</th><th>Vector</th><th>Probabilidad</th><th>Impacto</th><th>Estado actual</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong style="color:var(--text)">IP Block de animeflv</strong></td>
+            <td>Tráfico masivo desde la misma IP del servidor</td>
+            <td><span class="sev sev-crit">ALTA</span></td>
+            <td><span class="sev sev-crit">CRÍTICO</span></td>
+            <td>Sin mitigación</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--text)">XSS via datos de anime</strong></td>
+            <td>Título/cover con HTML malicioso en innerHTML</td>
+            <td><span class="sev sev-high">MEDIA</span></td>
+            <td><span class="sev sev-high">ALTO</span></td>
+            <td>Sin sanitización</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--text)">API Abuse (scraper de tu scraper)</strong></td>
+            <td>CORS abierto + sin rate limit</td>
+            <td><span class="sev sev-crit">ALTA</span></td>
+            <td><span class="sev sev-high">ALTO</span></td>
+            <td>Sin mitigación</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--text)">Memory exhaustion</strong></td>
+            <td>Cache sin límite bajo carga alta</td>
+            <td><span class="sev sev-high">MEDIA</span></td>
+            <td><span class="sev sev-crit">CRÍTICO</span></td>
+            <td>Sin límite de tamaño</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--text)">Path Traversal en :id</strong></td>
+            <td>id.replace(/\//g,'') previene ../ básico</td>
+            <td><span class="sev sev-low">BAJA</span></td>
+            <td><span class="sev sev-med">MEDIO</span></td>
+            <td>Parcialmente mitigado</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--text)">Exposición de estructura interna</strong></td>
+            <td>stack traces en respuestas de error</td>
+            <td><span class="sev sev-high">MEDIA</span></td>
+            <td><span class="sev sev-high">ALTO</span></td>
+            <td>console.error solo — sin ocultar en prod</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--text)">localStorage poisoning</strong></td>
+            <td>Manipulación de anime_library/history por usuario</td>
+            <td><span class="sev sev-low">BAJA</span></td>
+            <td><span class="sev sev-low">BAJO</span></td>
+            <td>Self-XSS risk solamente</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Medidas Actuales — Evaluación</div>
+      <div class="cards-grid-2">
+        <div class="card-box card-box-ok">
+          <div class="card-tag tag-ok">✓ Bien hecho</div>
+          <h3>Helmet.js activo</h3>
+          <p>Se aplican headers de seguridad HTTP: X-Frame-Options, X-Content-Type-Options, Referrer-Policy. ContentSecurityPolicy desactivado deliberadamente (necesario para iframes de video externos).</p>
+        </div>
+        <div class="card-box card-box-ok">
+          <div class="card-tag tag-ok">✓ Bien hecho</div>
+          <h3>Validación de parámetros de entrada</h3>
+          <p>validatePage() y validateGenre() sanitizan input numérico y de texto. cleanId y cleanCap limitan longitud y carácteres. Previene inyecciones básicas en las rutas de axios.</p>
+        </div>
+        <div class="card-box card-box-ok">
+          <div class="card-tag tag-ok">✓ Bien hecho</div>
+          <h3>Retry con backoff exponencial</h3>
+          <p>retryRequest() usa exponential backoff con cap de 5 segundos. Previene thundering herd si animeflv responde lento.</p>
+        </div>
+        <div class="card-box card-box-danger">
+          <div class="card-tag tag-danger">✗ Faltante</div>
+          <h3>Sin autenticación en el API</h3>
+          <p>Cualquier persona que conozca la URL del servidor puede usar el API sin restricción. Considerar API key o JWT si se despliega públicamente.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-info" style="margin-top:8px">
+      <div class="callout-icon">ℹ️</div>
+      <div class="callout-content">
+        <h4>Nota sobre legalidad del scraping</h4>
+        <p>El scraping de animeflv puede violar sus Términos de Servicio. El uso de User-Agent spoofing (simulación de Chrome) para acceder programáticamente es una práctica que muchos sitios prohíben explícitamente en sus ToS. Consultar asesoría legal antes de desplegar en producción pública.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ PÁGINA 10 ══════════════ -->
+  <div class="page" id="page-10">
+    <div class="page-header">
+      <div class="page-num">10</div>
+      <div class="page-meta">
+        <div class="page-label">Futuro</div>
+        <div class="page-title">Roadmap <span>Técnico</span></div>
+        <div class="page-desc">Plan de evolución completo del proyecto por fases, con estimaciones de tiempo y criterios de completitud.</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Fase 0 — Corrección Inmediata (Semana 1)</div>
+      <div class="cards-grid-2">
+        <div class="card-box card-box-danger">
+          <div class="card-tag tag-danger">Crítico · 1-2 días</div>
+          <h3>Implementar /api/genre endpoint</h3>
+          <p>Sin esto, todas las secciones de géneros del home fallan silenciosamente. Es el bug más impactante para el usuario final.</p>
+        </div>
+        <div class="card-box card-box-danger">
+          <div class="card-tag tag-danger">Crítico · 30 min</div>
+          <h3>Fix regex multilinea (×2)</h3>
+          <p>episodes y videos regex. Cambio mínimo, impacto máximo. Algunos animes mostrarán 0 episodios hasta corregirlo.</p>
+        </div>
+        <div class="card-box card-box-warn">
+          <div class="card-tag tag-warn">Alto · 1 día</div>
+          <h3>Rate Limiting + CORS</h3>
+          <p>Instalar express-rate-limit. Configurar CORS restrictivo. Protege la IP del servidor ante scraping masivo externo.</p>
+        </div>
+        <div class="card-box card-box-warn">
+          <div class="card-tag tag-warn">Alto · 2h</div>
+          <h3>Cache LRU + cleanup interval</h3>
+          <p>Límite de 1000 entradas. setInterval de limpieza cada 30 min para purgar entradas expiradas proactivamente.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Fase 1 — Estabilidad (Semanas 2-3)</div>
+      <div class="timeline">
+        <div class="timeline-item ti-purple">
+          <div class="timeline-label">Frontend Refactor</div>
+          <div class="timeline-title">Eliminar monkey-patching + escapeHtml()</div>
+          <div class="timeline-desc">Integrar la lógica de los overrides en sus objetos base. Crear helper escapeHtml() y aplicarlo en UIBuilder. Previene XSS y mejora mantenibilidad.</div>
+        </div>
+        <div class="timeline-item ti-purple">
+          <div class="timeline-label">CSS Cleanup</div>
+          <div class="timeline-title">Consolidar reglas duplicadas</div>
+          <div class="timeline-desc">Eliminar las primeras definiciones de .card, .card-img-wrapper, .card-title. Unificar en valores canónicos. Agregar hover a .btn-nav-modern.</div>
+        </div>
+        <div class="timeline-item ti-purple">
+          <div class="timeline-label">PWA</div>
+          <div class="timeline-title">manifest.json + iconos + Service Worker básico</div>
+          <div class="timeline-desc">Crear manifest completo, iconos 192/512px, y SW con App Shell strategy. La app podrá instalarse correctamente en Android y iOS.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Fase 2 — Evolución (Mes 2)</div>
+      <div class="cards-grid-3">
+        <div class="card-box card-box-ok">
+          <div class="card-tag tag-ok">Feature</div>
+          <h3>Multi-proveedor con fallback</h3>
+          <p>Abstracción de proveedores. Si animeflv falla, cambiar a fuente alternativa automáticamente.</p>
+        </div>
+        <div class="card-box card-box-ok">
+          <div class="card-tag tag-ok">Feature</div>
+          <h3>Offline Mode (SW avanzado)</h3>
+          <p>Stale-while-revalidate para /api/info. La biblioteca es accesible sin conexión.</p>
+        </div>
+        <div class="card-box card-box-ok">
+          <div class="card-tag tag-ok">Feature</div>
+          <h3>Recomendaciones v2</h3>
+          <p>Scoring multi-señal con decay temporal. Sección "Para ti" más precisa y personalizada.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Fase 3 — Producción (Mes 3+)</div>
+      <div class="cards-grid-2">
+        <div class="card-box card-box-accent">
+          <div class="card-tag tag-accent">Infrastructure</div>
+          <h3>Redis como cache distribuido</h3>
+          <p>Reemplazar el Map in-memory por Redis. Permite múltiples instancias del servidor (horizontal scaling) sin duplicar requests a animeflv. TTL nativo. Persistencia opcional.</p>
+        </div>
+        <div class="card-box card-box-accent">
+          <div class="card-tag tag-accent">Testing</div>
+          <h3>Suite de tests (Jest + Supertest)</h3>
+          <p>Tests unitarios para normalizeAnime(), normalizeEpisode(), cacheGet/Set, validatePage(), validateGenre(). Tests de integración para los endpoints del API. Coverage objetivo: 70%+.</p>
+        </div>
+        <div class="card-box card-box-accent">
+          <div class="card-tag tag-accent">Monitoring</div>
+          <h3>Dashboard de salud + alertas</h3>
+          <p>Panel /admin con métricas en tiempo real. Alertas si animeflv devuelve 403 o timeout. Notificación si cache size supera límites. Log estructurado (JSON) para análisis.</p>
+        </div>
+        <div class="card-box card-box-accent">
+          <div class="card-tag tag-accent">Containerization</div>
+          <h3>Docker + CI/CD</h3>
+          <p>Dockerfile con Node.js LTS Alpine. docker-compose con Redis. GitHub Actions para lint → test → build → deploy automático en cada push a main.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-ok" style="margin-top:16px">
+      <div class="callout-icon">🚀</div>
+      <div class="callout-content">
+        <h4>Conclusión knoX</h4>
+        <p>AnimeSAO Pro es un proyecto con buenas bases visuales y una arquitectura modular coherente. El mayor riesgo inmediato es el endpoint de género faltante y las vulnerabilidades de seguridad (CORS abierto, sin rate limit). Con las correcciones de Fase 0 aplicadas, el producto sería estable y seguro para un despliegue real. La hoja de ruta propuesta llevará el proyecto de MVP a producción robusta en ~3 meses de trabajo sostenido.</p>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+// ─── NAVIGATION ───
+const pages = document.querySelectorAll('.page');
+const navItems = document.querySelectorAll('.nav-item');
+const crumbText = document.getElementById('crumb-text');
+const crumbLabels = [
+  'Análisis General', 'Errores Detectados', 'Mejoras a Realizar',
+  'Sugerencias knoX', 'Visión General', 'Esquema Visual',
+  'Arquitectura del Sitio', 'Flujo de Información',
+  'Seguridad & Riesgos', 'Roadmap Técnico'
+];
+
+function goPage(n, el) {
+  pages.forEach(p => p.classList.remove('active'));
+  navItems.forEach(i => i.classList.remove('active'));
+  document.getElementById('page-' + n).classList.add('active');
+  el.classList.add('active');
+  crumbText.textContent = crumbLabels[n - 1];
+  document.querySelector('.main').scrollTo(0, 0);
+}
+
+// ─── COLLAPSIBLE ───
+function toggleCollapse(header) {
+  const body = header.nextElementSibling;
+  header.classList.toggle('open');
+  body.classList.toggle('open');
+}
+
+// ─── KEYBOARD NAV ───
+let currentPage = 1;
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+    if (currentPage < 10) {
+      currentPage++;
+      goPage(currentPage, navItems[currentPage - 1]);
+    }
+  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+    if (currentPage > 1) {
+      currentPage--;
+      goPage(currentPage, navItems[currentPage - 1]);
+    }
+  }
+});
+
+// Sync currentPage on nav click
+navItems.forEach((item, idx) => {
+  item.addEventListener('click', () => { currentPage = idx + 1; });
+});
+
+// ─── ANIMATE PROGRESS BARS ON VIEW ───
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const fills = entry.target.querySelectorAll('.prog-fill');
+      fills.forEach(f => {
+        const w = f.style.width;
+        f.style.width = '0%';
+        setTimeout(() => { f.style.width = w; }, 100);
+      });
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.section').forEach(s => observer.observe(s));
+</script>
+</body>
+</html>
